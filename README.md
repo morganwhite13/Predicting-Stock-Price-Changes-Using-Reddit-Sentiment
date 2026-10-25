@@ -6,9 +6,11 @@ A multi-input Recurrent Neural Network that predicts daily stock price percentag
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.14%2B-orange)](https://www.tensorflow.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+> **Note:** This repository holds the project's documentation (this README and [ARCHITECTURE.md](ARCHITECTURE.md)). The implementation, `StockPredictorFinal.py`, isn't included yet.
+
 ## 🎯 Overview
 
-This project fuses two distinct data sources—structured financial time series and unstructured social media text—to predict stock market movements. By analyzing investor sentiment on Reddit alongside traditional price data, the system captures how crowd psychology drives short-term price changes.
+This project fuses two distinct data sources—structured financial time series and unstructured social media text—to predict stock market movements. By analyzing investor sentiment on Reddit alongside traditional price data, it tests whether crowd psychology helps predict short-term price changes.
 
 **Key Features:**
 - 🔄 Real-time data collection from Reddit and Yahoo Finance APIs
@@ -172,21 +174,20 @@ Each file contains:
 ### Multi-Stock Portfolio (10 stocks, 10 posts each)
 - **Training MSE**: 0.3866
 - **Validation MSE**: 0.1785
-- **Key Insight**: Cross-stock patterns improve generalization
 
 ### Single-Stock Deep Dive (AAPL, 100 posts)
 - **Training MSE**: 0.0602
 - **Validation MSE**: 0.0024
-- **Key Insight**: Overfitting occurs; diversity matters more than depth
 
-### Feature Importance (Learned)
-1. Post Body Content (35%)
-2. Title Sentiment (25%)
-3. Body Sentiment (20%)
-4. Karma Score (10%)
-5. Comment Count (5%)
-6. Upvote Ratio (3%)
-7. Date/Symbol (2%)
+### How Much to Trust These Numbers
+
+Validation error well *below* training error (25× lower in the AAPL run) is a warning sign, not evidence of a good model:
+
+- **Leakage through shared targets.** The data is split randomly by post (`train_test_split`, 80/20). Every post about the same stock on the same day has the same target, so the validation set contains posts whose answers the model has effectively seen in training. This is strongest in the single-stock run, where 100 posts cover few trading days.
+- **No baseline.** The errors aren't compared to a trivial predictor (such as always predicting 0% change), so they don't show whether sentiment adds signal.
+- **Same-day timing.** Posts are matched to the price change of the day they were written, so some may be reacting to the move rather than predicting it.
+
+A fair test would split by date, report a naive baseline alongside the model, and use only posts written before the market opens. Per-feature importance hasn't been measured; an ablation under a date-based split would be the way to do it.
 
 ## 🧪 Technical Stack
 
@@ -208,23 +209,15 @@ Each file contains:
 
 ## 📚 Project Structure
 
+The original project also had `StockPredictorFinal.py` (the implementation) and generated `predictions3.csv` / `predictions4.csv` files, which aren't in this repository.
+
 ```
-stock-price-predictor/
-│
-├── StockPredictorFinal.py    # Main implementation
-├── requirements.txt           # Python dependencies
-├── README.md                  # This file
-├── LICENSE                    # MIT License
-│
-├── docs/
-│   ├── COMP4107_Project_Report.pdf  # Academic documentation
-│   └── architecture.md               # Detailed architecture guide
-│
-├── outputs/
-│   ├── predictions3.csv       # Training predictions (generated)
-│   └── predictions4.csv       # Validation predictions (generated)
-│
-└── .gitignore                 # Git ignore file
+Predicting-Stock-Price-Changes-Using-Reddit-Sentiment/
+├── README.md          # This file
+├── ARCHITECTURE.md    # Detailed architecture guide
+├── requirements.txt   # Python dependencies
+├── LICENSE            # MIT License
+└── .gitignore
 ```
 
 ## 🔬 Research Foundation
@@ -239,7 +232,7 @@ This project builds on established research:
 - Multi-input architecture separating titles and bodies
 - Date-synchronized fusion of Reddit and financial data
 - Dual sentiment analysis (title + body separately)
-- Multi-stock training for cross-market generalization
+- Training across multiple stocks rather than one
 
 ## ⚠️ Limitations & Disclaimers
 
@@ -247,7 +240,8 @@ This project builds on established research:
 
 **Known Limitations:**
 - Limited dataset size due to API rate limits
-- Overfitting on single-stock configurations
+- Random train/validation split leaks shared targets (see Performance)
+- No baseline comparison yet
 - No handling of after-hours trading or pre-market
 - Sentiment analysis accuracy varies (sarcasm, context)
 - Market efficiency limits predictability
